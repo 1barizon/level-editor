@@ -1,0 +1,78 @@
+------------------------ DONE-----------------------------------------------------
+- mostrar nomes dos arquivos de spritesheet carregado como buttons (done)
+
+- quando selecionado mostrar as imagens (done)
+ 
+- quando carregar a sprite_sheet crio um unordered map com a key filename (done)
+
+- nao add imagens quando estiver com o mouse na barra de selecao e usando imgui
+    if clicking and (mx > side_bar_size):
+    checar tb a uma certa altura
+    460
+
+
+------------------------ DONE-----------------------------------------------------
+
+
+- criar uma funcao na classe mapa que retorna um vetor<sprite, layer>
+
+- render_list [ [index_da_image_no_spriteSheet, "key"] , [[pos], layer]]
+- [(layer, [[[x, y], ['file_name', 5, 0]]])]
+
+- selected_tile = [selected_sprite_sheet , tile_id]
+
+
+class Map
+unordered type
+- tile_map = {(x,y): {0: {'pos' : [x, y], 'type': ["file_name", id], 'raw' : [[x * tile_size , y * tile_size], ['file_name', id]]}}}
+
+#include <unordered_map>
+#include <vector>
+#include <string>
+#include <tuple>
+
+
+
+class Map {
+public:
+    using TileType = std::tuple<std::string, int>;
+    using TileData = std::tuple<std::vector<int>, TileType>;
+    using TileMap = std::unordered_map<std::pair<int, int>, std::unordered_map<int, TileData>, boost::hash<std::pair<int, int>>>;
+    tile_size 
+  
+    all_layers = []
+
+    TileMap tile_map;
+
+    Map() {
+        // Example initialization
+        tile_map[{0, 0}][0] = {{0, 0}, {"file_name", 1}};
+        tile_map[{1, 1}][0] = {{32, 32}, {"file_name", 2}};
+    }
+
+    // Function to add a tile to the map
+    void addTile(int x, int y, int layer, const std::vector<int>& pos, const TileType& type) {
+        tile_map[{x, y}][layer] = {pos, type};
+    }
+};
+
+160
+
+
+-- get_visible(){
+    layer = {l : [] for l in all_layers}
+    for y in range view/tile_size:
+        for x in range view/tile_size:
+            // x e y arendondado para o grid
+            tile_pos = (x , y)
+            if tile_pos in tile_map:
+                for tile in tile_map[tile_pos]J:
+                    layer[tile].append(tile_map[tile_pos][tile]['raw'] + (['file_name', id]))
+    
+    
+    output = [(l, layers[l]) for l in self.all_layers]      
+
+}
+
+ - effects
+

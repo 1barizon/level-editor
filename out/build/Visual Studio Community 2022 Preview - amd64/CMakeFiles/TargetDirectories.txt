@@ -1,0 +1,6 @@
+C:/Users/joaod/Documents/projeto/out/build/Visual Studio Community 2022 Preview - amd64/CMakeFiles/file_dialog.dir
+C:/Users/joaod/Documents/projeto/out/build/Visual Studio Community 2022 Preview - amd64/CMakeFiles/spritesheet_loader.dir
+C:/Users/joaod/Documents/projeto/out/build/Visual Studio Community 2022 Preview - amd64/CMakeFiles/map.dir
+C:/Users/joaod/Documents/projeto/out/build/Visual Studio Community 2022 Preview - amd64/CMakeFiles/projecto.dir
+C:/Users/joaod/Documents/projeto/out/build/Visual Studio Community 2022 Preview - amd64/CMakeFiles/ALL_BUILD.dir
+C:/Users/joaod/Documents/projeto/out/build/Visual Studio Community 2022 Preview - amd64/CMakeFiles/ZERO_CHECK.dir
