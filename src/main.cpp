@@ -5,6 +5,7 @@
 #include <string>
 #include <iostream>
 #include <filesystem>
+#include <tuple>
 #include <unordered_map>
 #include <nlohmann/json.hpp>
 #include "../include/file_dialog.h"
@@ -15,19 +16,10 @@
 
 using json = nlohmann::json;
 
-// [start , end]
-std::vector<std::tuple<std::vector<int>, std::vector<int>>> get_selection_list(std::vector<int> start , std::vector<int> end){
-    std::vector<std::tuple<std::vector<int>, std::vector<int>>> selection_list;
-    selection_list.push_back(std::make_tuple(start, end));
-    return selection_list;
-}
-
-
-
 
 int main() {
     // Criação da janela SFML
-    sf::RenderWindow window(sf::VideoMode(1700, 900), "Level Editor");
+    sf::RenderWindow window(sf::VideoMode(1200, 800), "Level Editor");
     window.setFramerateLimit(60);
 
     // mouse pos
@@ -46,6 +38,8 @@ int main() {
     bool dialog_open_map_var  = false;
     std::string map_path = "";
     std::string map_type = ".json";
+    std::vector<int> scroll = {0,0};
+    int scroll_speed = 5;
 
     // sprite variables
     bool dialog_open_sprite_var = false;
@@ -72,8 +66,10 @@ int main() {
 
 
 
+
     // view
     sf::View view = window.getDefaultView();
+    
     bool grid_settings = false;
     bool show_grid  = true;
     int tile_size = 20;
@@ -84,14 +80,12 @@ int main() {
 
     // map
    
-    Map map(tile_size);
-
+    Map Level_Map(tile_size);
+    std::vector<int> render_pos = {0, 0};
+    std::unordered_map<std::vector<int>, std::pair<int, std::string>, VectorHash> Visible_Map;
     int pos_x;
     int pos_y;
-
-
-
-
+ 
     // Loop principal da janela
     while (window.isOpen()) {
         sf::Vector2i mousePos = sf::Mouse::getPosition(window);
@@ -111,50 +105,42 @@ int main() {
 
         float deltaTime = deltaClock.restart().asSeconds();
         if(sf::Keyboard::isKeyPressed(sf::Keyboard::A)){
-            view.move(-400* deltaTime, 0);
+            view.move(-scroll_speed, 0);
+            scroll[0] -= scroll_speed;
         }
         if(sf::Keyboard::isKeyPressed(sf::Keyboard::D)){
-            view.move(400* deltaTime, 0);
+            view.move(scroll_speed, 0);
+            scroll[0] += scroll_speed;
         }
         if(sf::Keyboard::isKeyPressed(sf::Keyboard::W)){
-            view.move(0, -400* deltaTime);
+            view.move(0, -scroll_speed);
+            scroll[1] -= scroll_speed;
         }
         if(sf::Keyboard::isKeyPressed(sf::Keyboard::S)){
-            view.move(0, 400* deltaTime);
+            view.move(0, scroll_speed);
+            scroll[1] += scroll_speed;
         }
 
         if(sf::Keyboard::isKeyPressed(sf::Keyboard::F)){
-            std::vector<std::tuple<int, int>> xy = {std::make_tuple(pos_x, pos_y)};
-            map.flood_fill(xy, selected_texture_id, layer, selected_texture_path);
+            Level_Map.flood_fill({pos_x, pos_y}, selected_texture_id, selected_texture_path, layer);
         }
 
         if (sf::Mouse::isButtonPressed(sf::Mouse::Left) && mousePos.x > 320 && mousePos.y > 44) {
         
-            if(selected_texture_path != ""){
-                map.map_data.push_back(std::make_tuple(pos_x, pos_y, selected_texture_id,layer, selected_texture_path));
-
+            if(!selected_texture.getSize().x == 0){
+                std::vector<int> pos = {pos_x, pos_y};
+                Level_Map.add_tile(pos, selected_texture_id, selected_texture_path, layer);
             }
          
             
         }
 
         if (sf::Mouse::isButtonPressed(sf::Mouse::Right)) {
-            
-
-            auto it = std::remove_if(map.map_data.begin(), map.map_data.end(), [&](const auto& item) {
-                int x, y, texture_id, item_layer;
-                std::string texture_path;
-                std::tie(x, y, texture_id, item_layer, texture_path) = item;
-                return x == pos_x && y == pos_y && item_layer == layer;
-            });
-
-            if (it != map.map_data.end()) {
-
-                map.map_data.erase(it, map.map_data.end());
-            }
+            std::vector<int> pos = {pos_x, pos_y};
+            Level_Map.delete_tile(pos, layer);
         }
+    
 
-       
         // crtl + l and k to change layer
         static bool ctrlPressed = false;
         static bool lPressed = false;
@@ -191,7 +177,7 @@ int main() {
        
 
 
-    
+       
         ImGui::SFML::Update(window, deltaClock.restart());
         if (ImGui::BeginMainMenuBar()) {
             if (ImGui::BeginMenu("File")) {
@@ -226,7 +212,8 @@ int main() {
             ImGui::EndMainMenuBar();
         }   
 
-       
+
+         
       
 
 
@@ -249,7 +236,7 @@ int main() {
             }
         }
 
-   
+
         // sprite size
         if(sprite_size_var == true){
             ImGui::SetNextWindowSize(ImVec2(200, 100));
@@ -284,8 +271,11 @@ int main() {
                     sf::Sprite sprite_img(item);
                     sprite_img.setScale(2.0f, 2.0f);
                     if(ImGui::ImageButton(sprite_img)){
-                        std::cout<< "Sprite selected" << std::endl;
                         selected_texture = item;
+                        selected_texture_id = &item - &spriteSheets[selected_spriteSheet][0];
+                        selected_texture_path = selected_spriteSheet;
+                        
+                        
                     }
                 }
             }  
@@ -294,7 +284,8 @@ int main() {
 
         ImGui::End();
     
-
+        
+       
         
 
 
@@ -310,6 +301,20 @@ int main() {
             window.draw(grid);
         }
 
+
+
+        sf::Vector2f viewSize = view.getSize(); 
+        sf::Vector2f viewCenter = view.getCenter();
+        sf::Vector2f topLeft(viewCenter.x - viewSize.x / 2, viewCenter.y - viewSize.y / 2);
+        render_pos[0] = (int((topLeft.x + tile_size / 2) / tile_size) * tile_size);
+        render_pos[1] = (int((topLeft.y + tile_size / 2) / tile_size) * tile_size);
+        // draw map
+        Visible_Map = Level_Map.Get_visible(render_pos, int(viewSize.x), int(viewSize.y));
+        for(const auto& item: Visible_Map){
+            sf::Sprite sprite(spriteSheets[item.second.second][item.second.first]);
+            sprite.setPosition(item.first[0], item.first[1]);
+            window.draw(sprite);
+        }
         
 
         // draw sprites mouse
@@ -321,33 +326,9 @@ int main() {
             sprite.setColor(sf::Color(255, 255, 255, 125));
             window.draw(sprite);
         }
-       
-        // render tile
-        for (const auto& item : map.map_data) {
-            int x, y, texture_id, tile_layer;
-            std::string texture_path;
-            std::tie(x, y, texture_id, tile_layer, texture_path) = item;
-            
-            // Find the texture in the vector_textures
-            auto it = std::find(list_textures_paths.begin(), list_textures_paths.end(), texture_path);
-            int texture_index = std::distance(list_textures_paths.begin(), it);
 
-            if (it != list_textures_paths.end()) {
-                int index = std::distance(list_textures_paths.begin(), it);
-                if (texture_id < vector_textures[index].size()) {
-                    sf::Sprite sprite(vector_textures[index][texture_id]);
-                    if(tile_layer != layer){
-                        sprite.setColor(sf::Color(0, 0, 0, 125));
-                    }
-                    
-                    sprite.setPosition(x, y);
-                    window.draw(sprite);
-                   
-                    
-                }
-            }
-        }
-        // Renderizar o ImGui
+
+       // Renderizar o ImGui
       
    
         ImGui::SFML::Render(window);
@@ -365,9 +346,9 @@ int main() {
         window.draw(layerText);
 
         // selection 
-
-
-
+        
+        
+        
         window.display();
     }
 

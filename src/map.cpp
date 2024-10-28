@@ -1,37 +1,75 @@
 #include "../include/map.h"
 #include "map.h"
+#include <queue>
 
-Map::Map(int tile_size)
+
+Map::Map(int tile_size): tile_size(tile_size) {}
+
+std::unordered_map<std::vector<int>, std::pair<int, std::string>, VectorHash> Map::Get_visible(std::vector<int> pos, int X_size, int Y_size)
 {
-    this->tile_size = tile_size;
-}
-void Map::flood_fill(std::vector<std::tuple<int, int>> xy, int texture_id, int layer, std::string texture_path)
-{
-    std::vector<std::tuple< int , int>> remaining_tiles = xy;
-    while(remaining_tiles.size() > 0){
-        std::vector<std::tuple<int, int>> new_remaining_tiles;
-        for(auto& tile : remaining_tiles){
-            int x, y;
-            std::tie(x, y) = tile;
-            map_data.push_back(std::make_tuple(x, y, texture_id, layer, texture_path));
-            // check if the tile above is empty
-            if(std::find(map_data.begin(), map_data.end(), std::make_tuple(x, y - tile_size, texture_id, layer, texture_path)) == map_data.end()){
-                new_remaining_tiles.push_back(std::make_tuple(x, y - tile_size));
-            }
-            // check if the tile below is empty
-            if(std::find(map_data.begin(), map_data.end(), std::make_tuple(x, y + tile_size, texture_id, layer, texture_path)) == map_data.end()){
-                new_remaining_tiles.push_back(std::make_tuple(x, y + tile_size));
-            }
-            // check if the tile to the left is empty
-            if(std::find(map_data.begin(), map_data.end(), std::make_tuple(x - tile_size, y, texture_id, layer, texture_path)) == map_data.end()){
-                new_remaining_tiles.push_back(std::make_tuple(x - tile_size, y));
-            }
-            // check if the tile to the right is empty
-            if(std::find(map_data.begin(), map_data.end(), std::make_tuple(x + tile_size, y, texture_id, layer, texture_path)) == map_data.end()){
-                new_remaining_tiles.push_back(std::make_tuple(x + tile_size, y));
+    std::unordered_map<std::vector<int>, std::pair<int, std::string>, VectorHash> Visible_Map;
+    Visible_Map.clear();
+    for(const auto& layer: Tile_Map){
+        for(const auto& tile: layer.second){
+            if(tile.first[0] > pos[0] - tile_size && tile.first[0] < pos[0] + X_size + tile_size && tile.first[1] > pos[1] - tile_size && tile.first[1] < pos[1] + Y_size + tile_size){
+                Visible_Map[tile.first] = tile.second;
             }
         }
-        remaining_tiles = new_remaining_tiles;
     }
+    
+    return Visible_Map;
 }
 
+void Map::add_tile(std::vector<int> pos, int id, std::string texture_path, int layer)
+{
+    // look if the layer exists
+    if(Tile_Map.find(layer) == Tile_Map.end())
+    {
+        Tile_Map[layer] = {};
+    }
+
+    // look if the tile exists
+    if(Tile_Map[layer].find(pos) == Tile_Map[layer].end())
+    {
+        Tile_Map[layer][pos] = std::make_pair(id, texture_path);
+    }
+
+
+}
+
+void Map::delete_tile(std::vector<int> pos, int layer)
+{
+    if(Tile_Map.find(layer) != Tile_Map.end())
+    {
+        if(Tile_Map[layer].find(pos) != Tile_Map[layer].end())
+        {
+            Tile_Map[layer].erase(pos);
+        }
+    }
+   
+}
+
+void Map::flood_fill(std::vector<int> pos, int id, std::string texture_path, int layer)
+{
+    std::queue<std::vector<int>> q;
+    q.push(pos);
+    std::vector<std::vector<int>> directions = {{tile_size, 0}, {-tile_size, 0}, {0, tile_size}, {0, -tile_size}};
+    
+    while (!q.empty()) {
+        std::vector<int> current = q.front();
+        q.pop();
+        
+        // Add the current tile
+        add_tile(current, id, texture_path, layer);
+        
+        // Check all four directions
+        for (const auto& dir : directions) {
+            std::vector<int> neighbor = {current[0] + dir[0], current[1] + dir[1]};
+            
+            // If the neighbor is not already filled
+            if (Tile_Map[layer].find(neighbor) == Tile_Map[layer].end()) {
+                q.push(neighbor);
+            }
+        }
+    }
+}
