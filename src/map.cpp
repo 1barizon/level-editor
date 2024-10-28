@@ -27,14 +27,7 @@ void Map::add_tile(std::vector<int> pos, int id, std::string texture_path, int l
     {
         Tile_Map[layer] = {};
     }
-
-    // look if the tile exists
-    if(Tile_Map[layer].find(pos) == Tile_Map[layer].end())
-    {
-        Tile_Map[layer][pos] = std::make_pair(id, texture_path);
-    }
-
-
+    Tile_Map[layer][pos] = {id, texture_path};
 }
 
 void Map::delete_tile(std::vector<int> pos, int layer)
