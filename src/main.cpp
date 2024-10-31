@@ -17,6 +17,7 @@
 using json = nlohmann::json;
 
 
+
 int main() {
     // Criação da janela SFML
     sf::RenderWindow window(sf::VideoMode(1200, 800), "Level Editor");
@@ -63,6 +64,7 @@ int main() {
     // refactoring for perfomance  
     std::unordered_map<std::string, std::vector<sf::Texture>> spriteSheets;  // spriteSheets < 'nome do arquivo' , sprite >
     std::string selected_spriteSheet;
+    std::vector<std::vector<int>> selection_pos = { {0, 0}, {0, 0} };
 
 
 
@@ -72,11 +74,15 @@ int main() {
     
     bool grid_settings = false;
     bool show_grid  = true;
+    bool auto_tile_settings = false;
+    bool editing = true;
+    bool selection_mode = false;
     int tile_size = 20;
     int grid_size = 100; // pixels 
     float scale = 1.5f;
     view.zoom(1.0f/scale);
     sf::VertexArray grid = createGrid(sprite_size,100);
+    
 
     // map
    
@@ -120,12 +126,15 @@ int main() {
             view.move(0, scroll_speed);
             scroll[1] += scroll_speed;
         }
+        if(sf::Keyboard::isKeyPressed(sf::Keyboard::C)){
+           Level_Map.auto_tile(selection_pos[0], selection_pos[1], layer);
+        }
 
         if(sf::Keyboard::isKeyPressed(sf::Keyboard::F)){
             Level_Map.flood_fill({pos_x, pos_y}, selected_texture_id, selected_texture_path, layer);
         }
 
-        if (sf::Mouse::isButtonPressed(sf::Mouse::Left) && mousePos.x > 320 && mousePos.y > 44) {
+        if (sf::Mouse::isButtonPressed(sf::Mouse::Left) && mousePos.x > 320 && mousePos.y > 44 && editing) {
         
             if(!selected_texture.getSize().x == 0){
                 std::vector<int> pos = {pos_x, pos_y};
@@ -135,7 +144,7 @@ int main() {
             
         }
 
-        if (sf::Mouse::isButtonPressed(sf::Mouse::Right)) {
+        if (sf::Mouse::isButtonPressed(sf::Mouse::Right) && mousePos.x > 320 && mousePos.y > 44 && editing) {
             std::vector<int> pos = {pos_x, pos_y};
             Level_Map.delete_tile(pos, layer);
         }
@@ -170,6 +179,23 @@ int main() {
             } else {
             kPressed = false;
             }
+            if (sf::Keyboard::isKeyPressed(sf::Keyboard::Z)) {
+                selection_mode = true;
+                if(selection_pos[0] == std::vector<int>{0, 0}){
+                    selection_pos[0] = {pos_x, pos_y};
+                }
+            }
+            else {
+                
+                selection_pos[1] = {pos_x, pos_y};
+                
+            }
+
+
+            if(sf::Keyboard::isKeyPressed(sf::Keyboard::X)){
+                selection_mode = false;
+                selection_pos = { {0, 0}, {0, 0} };
+            }
         }
     
 
@@ -192,15 +218,23 @@ int main() {
             if (ImGui::BeginMenu("Sprites")) {
                 if (ImGui::MenuItem("Load Spritesheet")) {
                     dialog_open_sprite_var = true;
+                    
                 }
                 if(ImGui::MenuItem("Sprite size")){
                     sprite_size_var = true;
+                    
                 }
                 ImGui::EndMenu();
             }
             // grid settings
             if (ImGui::BeginMenu("Grid")) {
                 grid_settings = true;
+              
+                ImGui::EndMenu();
+            }
+            if(ImGui::BeginMenu("Auto Tile Config")){
+                auto_tile_settings = true;
+                
                 ImGui::EndMenu();
             }
 
@@ -212,7 +246,11 @@ int main() {
             ImGui::EndMainMenuBar();
         }   
 
-
+        if(selection_mode ==  true||auto_tile_settings == true || grid_settings == true || sprite_size_var == true || dialog_open_sprite_var == true || dialog_open_map_var == true){
+            editing = false;
+        }else{
+            editing = true;
+        }
          
       
 
@@ -225,6 +263,7 @@ int main() {
         if(dialog_open_map_var== true){
             dialog_open_map.Open(&dialog_open_map_var, map_type, &map_path);
         }
+       
 
 
         // load sprite_sheet
@@ -232,11 +271,65 @@ int main() {
             dialog_open_sprite.Open(&dialog_open_sprite_var, sprite_type, &sprite_path);
             if(sprite_path != "" && spriteSheets.find(sprite_path) == spriteSheets.end()){
                 spriteSheets[sprite_path] = load_spritesheet_map(sprite_path, sprite_size);
+                Level_Map.TilesConfigs.push_back({sprite_path, {}});
                 sprite_path = "";
             }
         }
+        // auto tile settings
+        if(auto_tile_settings == true){
+            ImGui::SetNextWindowSize(ImVec2(250, 250));
+            ImGui::Begin("Auto Tile Settings", &auto_tile_settings);
+            // mostrar as imagens do spriteSheet 
+            // a imagem aparece no meio da window e o usuario seleciona as bordas, as bordas sao quadrados cinzas selecionaveis que ficam verde 
+            static bool selectedBorders[8] = { false }; // false: not selected, true: selected
+            ImGui::Text("Select Borders:");
+            
+            if (selected_texture.getSize().x != 0) {
+            ImVec2 textureSize(50, 50);
+            ImVec2 windowSize = ImGui::GetWindowSize();
+            ImVec2 texturePos = ImVec2((windowSize.x - textureSize.x) / 2, (windowSize.y - textureSize.y) / 2);
+            
+            ImGui::SetCursorPos(texturePos);
+            ImGui::Image(selected_texture, textureSize);
+            
+            ImVec2 borderPos[8] = {
+            ImVec2(texturePos.x - 50, texturePos.y - 50), // top-left
+            ImVec2(texturePos.x, texturePos.y - 50), // top
+            ImVec2(texturePos.x + 50, texturePos.y - 50), // top-right
+            ImVec2(texturePos.x - 50, texturePos.y), // left
+            ImVec2(texturePos.x + 50, texturePos.y), // right
+            ImVec2(texturePos.x - 50, texturePos.y + 50), // bottom-left
+            ImVec2(texturePos.x, texturePos.y + 50), // bottom
+            ImVec2(texturePos.x + 50, texturePos.y + 50) // bottom-right
+            };
 
+            const char* borderLabels[8] = {
+            "[-1,-1]", "[-1,0]", "[-1,1]", "[0,-1]", "[0,1]", "[1,-1]", "[1,0]", "[1,1]"
+            };
+            std::vector<std::vector<int>> border_list_label = {{-1,-1}, {-1,0}, {-1,1}, {0,-1}, {0,1}, {1,-1}, {1,0}, {1,1}};
 
+            for (int i = 0; i < 8; ++i) {
+                ImGui::SetCursorPos(borderPos[i]);
+                ImGui::PushID(i);
+            
+                if (ImGui::Button(borderLabels[i], ImVec2(50, 50))) {
+                selectedBorders[i] = !selectedBorders[i];
+                if (selectedBorders[i]) {
+                std::cout << "Selected: " << borderLabels[i] << std::endl;
+                    
+                    Level_Map.TilesConfigs.back().border_list[selected_texture_id].push_back(border_list_label[i]);
+                }
+                }
+            
+                ImGui::PopID();
+            }
+            } else {
+                ImGui::Text("No texture selected.");
+            }
+
+            ImGui::End();
+        }
+       
         // sprite size
         if(sprite_size_var == true){
             ImGui::SetNextWindowSize(ImVec2(200, 100));
@@ -327,7 +420,22 @@ int main() {
             window.draw(sprite);
         }
 
+         // selection mod 
+        if(selection_mode == true){
+            sf::RectangleShape selectionRect;
+            selectionRect.setPosition(sf::Vector2f(selection_pos[0][0], selection_pos[0][1]));
+            if (selection_pos[1] == std::vector<int>{0, 0}) {
+                selectionRect.setSize(sf::Vector2f(pos_x - selection_pos[0][0], pos_y - selection_pos[0][1]));
+            } else {
+                selectionRect.setSize(sf::Vector2f(selection_pos[1][0] - selection_pos[0][0], selection_pos[1][1] - selection_pos[0][1]));
+            }
+            selectionRect.setFillColor(sf::Color(0, 0, 255, 50)); // Semi-transparent blue
+            selectionRect.setOutlineColor(sf::Color(0, 0, 255, 150)); // Blue outline
+            selectionRect.setOutlineThickness(1.0f);
+            window.draw(selectionRect);
+        }   
 
+        
        // Renderizar o ImGui
       
    

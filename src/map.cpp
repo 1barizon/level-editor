@@ -1,6 +1,7 @@
 #include "../include/map.h"
 #include "map.h"
 #include <queue>
+#include <string>
 
 
 Map::Map(int tile_size): tile_size(tile_size) {}
@@ -66,3 +67,53 @@ void Map::flood_fill(std::vector<int> pos, int id, std::string texture_path, int
         }
     }
 }
+
+void Map::auto_tile(std::vector<int> initial_pos, std::vector<int> final_pos, int layer)
+{
+    for(int i = initial_pos[0]; i < final_pos[0]; i += tile_size){
+        for(int j = initial_pos[1]; j < final_pos[1]; j += tile_size){
+            std::vector<int> pos = {i,j}; // current tile pos
+            std::vector<std::vector<int>> border_tiles; // tile id of the neighbors
+            if (Tile_Map[layer].find(pos) != Tile_Map[layer].end()) {
+                // check for all directions
+                for(const auto& dir: AutoTileCheckList){
+                    std::vector<int> neighbor = {pos[0] + dir[1] * tile_size, pos[1] + dir[0] * tile_size};
+                    if(Tile_Map[layer].find(neighbor) != Tile_Map[layer].end()){
+                        border_tiles.push_back(dir);
+                        
+                    }
+                }
+
+             
+
+                for(const auto& config: TilesConfigs){
+                    for(const auto& border: config.border_list){
+                        
+                        std::vector<std::vector<int>> check_list = border.second;
+                       
+                        
+                        std::sort(check_list.begin(), check_list.end());
+                        std::sort(border_tiles.begin(), border_tiles.end());
+                        if(check_list.size()== border_tiles.size()){
+                            if(std::equal(check_list.begin(), check_list.end(), border_tiles.begin())){
+                                add_tile(pos, border.first, config.texture_path, layer);
+                            }
+                           
+                            
+                        }
+                                
+                                
+                    }
+                } 
+            }
+
+                
+
+        }
+
+
+    } 
+}
+
+
+

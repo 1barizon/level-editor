@@ -24,14 +24,22 @@ std::size_t operator()(const std::vector<int>& v) const {
 class Map {
     public:
         Map(int tile_size);
+
+        struct AutoTileConfig {
+            std::string texture_path;
+            std::unordered_map<int, std::vector<std::vector<int>>> border_list;  // "id" : [combinações]   
+        };
+
+        std::vector<std::vector<int>> AutoTileCheckList = {{0, -1}, {1, 0}, {0, 1}, {-1, 0}};
         // x , y , id , layer , texture_path
         std::unordered_map<int, std::unordered_map<std::vector<int>, std::pair<int, std::string>, VectorHash>> Tile_Map;
-    
         std::unordered_map<std::vector<int>, std::pair<int, std::string>, VectorHash> Get_visible(std::vector<int> pos, int X_size , int Y_size);
+        std::vector<AutoTileConfig> TilesConfigs;
+        // functions
         void add_tile(std::vector<int> pos, int id, std::string texture_path, int layer); 
         void delete_tile(std::vector<int> pos, int layer);
         void flood_fill(std::vector<int> pos, int id, std::string texture_path, int layer);
-
+        void auto_tile(std::vector<int> initial_pos, std::vector<int> final_pos, int layer);
     private:
         
         int tile_size;

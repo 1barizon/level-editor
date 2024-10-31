@@ -12,15 +12,24 @@
 
 -flood_fill
 -delete
+- auto_tile config
+    - struct auto_tile_config 
+        - string
 
+        - \
+
+        finish auto_tile
+-
 
 ------------------------ to-do-----------------------------------------------------
 
 -- draw just the sprite that it's possition is in the screen,X 
--- todo --
-- auto_tile config
-- save project 
 
+-- todo --
+    ajustar o autotileconfig ( ta feio)
+    deletar com o quadrado de selecao 
+    copiar e colar tb 
+    save project 
 
 
 
